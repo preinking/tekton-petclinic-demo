@@ -1,0 +1,11 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: mobydock-app
+spec:
+  serviceAccountName: pipeline
+  triggers:
+  - bindings:
+    - name: mobydock-app
+    template:
+      name: mobydock-app

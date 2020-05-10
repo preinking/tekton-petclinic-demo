@@ -1,0 +1,75 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: maven-pipeline
+spec:
+  resources:
+  - name: git-repo
+    type: git
+  - name: image
+    type: image
+  workspaces:
+  - name: maven-repo
+  - name: maven-settings
+  - name: shared-workspace
+  tasks:
+  - name: fetch-repository
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    workspaces:
+    - name: output
+      workspace: shared-workspace
+    params:
+    - name: url
+      value: git@github.com:preinking/spring-petclinic.git
+    - name: subdirectory
+      value: ''
+    - name: deleteExisting
+      value: 'true'
+  - name: maven-run
+    taskRef:
+      name: maven
+      kind: ClusterTask
+    runAfter:
+    - fetch-repository
+    workspaces:
+    - name: maven-settings
+      workspace: maven-settings
+    - name: maven-repo
+      workspace: maven-repo
+    - name: source
+      workspace: shared-workspace
+  - name: kaniko
+    taskRef:
+      kind: ClusterTask
+      name: kaniko
+    runAfter:
+    - maven-run
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    params:
+    - name: IMAGE
+      value: quanby/kaniko-spring-petclinc:2.3.0
+    - name: EXTRA_ARGS
+      value: "--skip-tls-verify"
+  - name: verify-digest
+    runAfter:
+    - kaniko
+    params:
+    - name: digest
+      value: "$(tasks.kaniko.results.IMAGE-DIGEST)"
+    taskSpec:
+      params:
+      - name: digest
+      steps:
+      - name: bash
+        image: ubuntu
+        script: |
+          echo $(params.digest)
+          case .$(params.digest) in
+            ".sha"*) exit 0 ;;
+            *)       echo "Digest value is not correct" && exit 1 ;;
+          esac

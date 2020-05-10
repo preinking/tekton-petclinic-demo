@@ -1,0 +1,20 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: spring-petclinic-repo
+spec:
+  type: git
+  params:
+  - name: url
+    value: git@github.com:preinking/spring-petclinic.git
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: spring-petclinic-image
+spec:
+  type: image
+  params:
+  - name: url
+    value: image-registry.openshift-image-registry.svc:5000/tekton-petclinic-demo/spring-petclinic:latest
